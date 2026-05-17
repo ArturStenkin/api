@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Система загрузки пространственных данных</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <!-- Bootstrap Icons -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    rel="stylesheet"
+  />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Глобальные переменные ── */
+    :root {
+      --brand-primary: #1a6b4a;
+      --brand-secondary: #2d9b6f;
+      --brand-accent: #5ecb9e;
+      --brand-light: #e8f7f1;
+      --brand-dark: #0f3d2a;
+      --surface: #ffffff;
+      --surface-2: #f6fbf9;
+      --border: #d0ebe0;
+      --text-main: #1a2e24;
+      --text-muted: #5a7a6a;
+      --shadow-sm: 0 2px 8px rgba(26,107,74,0.08);
+      --shadow-md: 0 8px 32px rgba(26,107,74,0.13);
+      --shadow-lg: 0 20px 60px rgba(26,107,74,0.18);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    /* ── Фон и типографика ── */
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(135deg, #e8f7f1 0%, #d4f0e4 40%, #c0e8d5 100%);
+      min-height: 100vh;
+      color: var(--text-main);
+    }
+
+    /* ── Шапка ── */
+    .app-header {
+      background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-primary) 100%);
+      color: white;
+      padding: 1.25rem 0;
+      box-shadow: 0 4px 20px rgba(15,61,42,0.25);
+    }
+    .app-header .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin-right: 14px;
+      backdrop-filter: blur(4px);
+    }
+    .app-header h1 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      margin: 0;
+      line-height: 1.2;
+    }
+    .app-header .subtitle {
+      font-size: 0.75rem;
+      opacity: 0.7;
+      margin: 0;
+      font-weight: 400;
+    }
+    .badge-version {
+      background: rgba(255,255,255,0.18);
+      color: white;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Главная карточка ── */
+    .main-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: box-shadow 0.3s;
+    }
+    .main-card:hover {
+      box-shadow: 0 28px 80px rgba(26,107,74,0.22);
+    }
+    .card-header-band {
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+      padding: 1.5rem 2rem;
+      color: white;
+    }
+    .card-header-band h2 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      margin: 0 0 4px;
+    }
+    .card-header-band p {
+      margin: 0;
+      font-size: 0.85rem;
+      opacity: 0.82;
+    }
+    .card-body-inner {
+      padding: 2rem;
+    }
+
+    /* ── Зона загрузки файла ── */
+    .upload-zone {
+      border: 2.5px dashed var(--brand-accent);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--brand-primary);
+      background: var(--brand-light);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+    .upload-zone .zone-icon {
+      font-size: 2.8rem;
+      color: var(--brand-secondary);
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+    .upload-zone h5 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--brand-dark);
+      margin-bottom: 0.3rem;
+    }
+    .upload-zone p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    #file-name-display {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--brand-primary);
+      min-height: 1.4em;
+    }
+
+    /* ── Кнопка загрузки ── */
+    .btn-upload {
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0.75rem 2.2rem;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      transition: all 0.25s;
+      box-shadow: 0 4px 16px rgba(26,107,74,0.3);
+    }
+    .btn-upload:hover:not(:disabled) {
+      background: linear-gradient(135deg, var(--brand-dark), var(--brand-primary));
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(26,107,74,0.4);
+    }
+    .btn-upload:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* ── Спиннер загрузки ── */
+    #loading-block {
+      display: none;
+    }
+
+    /* ── Блок результата ── */
+    .result-card {
+      background: var(--surface-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      animation: fadeSlideIn 0.4s ease both;
+    }
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .result-header {
+      background: linear-gradient(135deg, #d4f0e4, #e8f7f1);
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .result-header .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #2d9b6f;
+      box-shadow: 0 0 0 3px rgba(45,155,111,0.25);
+      flex-shrink: 0;
+    }
+    .result-header h5 {
+      margin: 0;
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--brand-dark);
+    }
+
+    /* ── Мета-данные результата ── */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      padding: 1.25rem 1.5rem;
+    }
+    .meta-item {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      transition: box-shadow 0.2s;
+    }
+    .meta-item:hover {
+      box-shadow: var(--shadow-sm);
+    }
+    .meta-item .meta-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .meta-item .meta-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+    .meta-item .meta-value.accent {
+      color: var(--brand-primary);
+      font-size: 1.3rem;
+    }
+
+    /* ── JSON-превью ── */
+    .json-section {
+      padding: 0 1.5rem 1.5rem;
+    }
+    .json-section h6 {
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 0.65rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .json-block {
+      background: #0f1f18;
+      color: #a8f0cc;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      padding: 1.1rem 1.3rem;
+      border-radius: 10px;
+      overflow-x: auto;
+      max-height: 340px;
+      overflow-y: auto;
+      white-space: pre;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .json-block::-webkit-scrollbar { width: 6px; height: 6px; }
+    .json-block::-webkit-scrollbar-thumb { background: #2d4a38; border-radius: 3px; }
+
+    /* ── Блок ошибки ── */
+    .error-card {
+      background: #fff5f5;
+      border: 1.5px solid #fca5a5;
+      border-radius: var(--radius-sm);
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      animation: fadeSlideIn 0.3s ease both;
+    }
+    .error-card .error-icon {
+      font-size: 1.4rem;
+      color: #dc2626;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .error-card .error-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #991b1b;
+      margin-bottom: 4px;
+    }
+    .error-card .error-msg {
+      font-size: 0.85rem;
+      color: #7f1d1d;
+      margin: 0;
+    }
+
+    /* ── Инфо-панель ── */
+    .info-panel {
+      background: var(--brand-light);
+      border: 1px solid #b6dece;
+      border-radius: var(--radius-sm);
+      padding: 1rem 1.25rem;
+      font-size: 0.83rem;
+      color: var(--brand-dark);
+    }
+    .info-panel ul { margin: 0.4rem 0 0; padding-left: 1.3rem; }
+    .info-panel li { margin-bottom: 2px; }
+
+    /* ── Подвал ── */
+    .app-footer {
+      text-align: center;
+      padding: 1.5rem 0;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .app-footer a {
+      color: var(--brand-primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .app-footer a:hover { text-decoration: underline; }
+
+    /* ── Ссылки API ── */
+    .api-links .api-link-btn {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--brand-primary);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 14px;
+      text-decoration: none;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: white;
+    }
+    .api-links .api-link-btn:hover {
+      background: var(--brand-light);
+      border-color: var(--brand-accent);
+      color: var(--brand-dark);
+    }
+
+    /* ── Адаптивность ── */
+    @media (max-width: 576px) {
+      .card-body-inner { padding: 1.25rem; }
+      .meta-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Шапка приложения ── -->
+<header class="app-header">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between">
+      <div class="d-flex align-items-center">
+        <div class="brand-icon">🗺️</div>
+        <div>
+          <h1>Система загрузки пространственных данных</h1>
+          <p class="subtitle">WebAPI на основе FastAPI + GeoPandas</p>
+        </div>
+      </div>
+      <span class="badge-version d-none d-sm-block">v 1.0.0</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Основной контент ── -->
+<main class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-7">
+
+      <!-- Ссылки на документацию API -->
+      <div class="api-links d-flex gap-2 mb-3 flex-wrap">
+        <a href="/docs" target="_blank" class="api-link-btn">
+          <i class="bi bi-code-slash"></i> Swagger UI
+        </a>
+        <a href="/redoc" target="_blank" class="api-link-btn">
+          <i class="bi bi-file-text"></i> ReDoc
+        </a>
+        <a href="/api/info" target="_blank" class="api-link-btn">
+          <i class="bi bi-info-circle"></i> API Info
+        </a>
+      </div>
+
+      <!-- Главная карточка -->
+      <div class="main-card mb-4">
+        <!-- Заголовочная полоса карточки -->
+        <div class="card-header-band">
+          <h2><i class="bi bi-cloud-upload me-2"></i>Загрузка и обработка файла</h2>
+          <p>Загрузите ZIP-архив со Shapefile для конвертации в формат GeoJSON</p>
+        </div>
+
+        <div class="card-body-inner">
+
+          <!-- Форма загрузки -->
+          <form
+            id="upload-form"
+            action="/upload"
+            method="post"
+            enctype="multipart/form-data"
+            onsubmit="handleSubmit(event)"
+          >
+            <!-- Зона перетаскивания/выбора файла -->
+            <div
+              class="upload-zone mb-3"
+              id="drop-zone"
+              ondragover="onDragOver(event)"
+              ondragleave="onDragLeave(event)"
+              ondrop="onDrop(event)"
+            >
+              <input
+                type="file"
+                name="file"
+                id="file-input"
+                accept=".zip"
+                onchange="onFileChange(event)"
+                required
+              />
+              <i class="bi bi-file-earmark-zip zone-icon"></i>
+              <h5>Выберите или перетащите файл сюда</h5>
+              <p>Поддерживается формат: <strong>.zip</strong> (архив со Shapefile)</p>
+              <div id="file-name-display"></div>
+            </div>
+
+            <!-- Кнопка отправки -->
+            <div class="d-grid mb-3">
+              <button type="submit" class="btn btn-upload" id="submit-btn">
+                <i class="bi bi-gear-fill me-2"></i>Загрузить и обработать
+              </button>
+            </div>
+
+            <!-- Индикатор загрузки -->
+            <div id="loading-block" class="text-center py-2">
+              <div class="spinner-border text-success me-2" role="status" style="width:1.5rem;height:1.5rem;">
+                <span class="visually-hidden">Загрузка...</span>
+              </div>
+              <span class="fw-600" style="color:var(--brand-primary)">Обработка файла, пожалуйста подождите…</span>
+            </div>
+          </form>
+
+          <!-- Информационная подсказка -->
+          <div class="info-panel">
+            <strong><i class="bi bi-lightbulb me-1"></i>Что должен содержать архив?</strong>
+            <ul>
+              <li>Файл геометрии: <code>.shp</code></li>
+              <li>Атрибуты объектов: <code>.dbf</code></li>
+              <li>Пространственный индекс: <code>.shx</code></li>
+              <li>Система координат (опционально): <code>.prj</code></li>
+            </ul>
+          </div>
+
+        </div><!-- /card-body-inner -->
+      </div><!-- /main-card -->
+
+      <!-- ── Блок результата (показывается если result) ── -->
+      {% if result %}
+      <div class="result-card mb-4">
+        <div class="result-header">
+          <div class="status-dot"></div>
+          <h5><i class="bi bi-check-circle me-2"></i>Файл успешно обработан</h5>
+        </div>
+
+        <!-- Метаданные -->
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="meta-label"><i class="bi bi-file-earmark me-1"></i>Файл</div>
+            <div class="meta-value">{{ result.filename }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label"><i class="bi bi-check-circle me-1"></i>Статус</div>
+            <div class="meta-value" style="color:var(--brand-secondary)">{{ result.status }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label"><i class="bi bi-layers me-1"></i>Объектов</div>
+            <div class="meta-value accent">{{ result.feature_count }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label"><i class="bi bi-globe me-1"></i>Система координат</div>
+            <div class="meta-value">{{ result.crs }}</div>
+          </div>
+        </div>
+
+        <!-- Превью GeoJSON -->
+        <div class="json-section">
+          <h6>
+            <i class="bi bi-braces"></i>
+            Превью GeoJSON (первые 2 объекта)
+          </h6>
+          <div class="json-block">{{ result.preview }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ── Блок ошибки (показывается если error) ── -->
+      {% if error %}
+      <div class="error-card mb-4">
+        <i class="bi bi-exclamation-triangle-fill error-icon"></i>
+        <div>
+          <div class="error-title">Ошибка обработки</div>
+          <p class="error-msg">{{ error }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+    </div><!-- /col -->
+  </div><!-- /row -->
+</main>
+
+<!-- ── Подвал ── -->
+<footer class="app-footer">
+  <p>
+    Курсовая работа &nbsp;•&nbsp;
+    WebAPI для пакетной загрузки пространственных данных &nbsp;•&nbsp;
+    <a href="/docs">FastAPI Swagger UI</a> &nbsp;•&nbsp;
+    <a href="https://geopandas.org" target="_blank">GeoPandas</a>
+  </p>
+</footer>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // ── Отображение имени выбранного файла ──
+  function onFileChange(e) {
+    const file = e.target.files[0];
+    const display = document.getElementById('file-name-display');
+    if (file) {
+      display.innerHTML = `<i class="bi bi-check2-circle me-1"></i> ${file.name} (${(file.size/1024).toFixed(1)} КБ)`;
+    } else {
+      display.textContent = '';
+    }
+  }
+
+  // ── Drag & Drop ──
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.add('dragover');
+  }
+  function onDragLeave(e) {
+    document.getElementById('drop-zone').classList.remove('dragover');
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('dragover');
+    const dt = e.dataTransfer;
+    if (dt && dt.files.length > 0) {
+      const input = document.getElementById('file-input');
+      // Переносим файл из dataTransfer в input
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(dt.files[0]);
+      input.files = dataTransfer.files;
+      onFileChange({ target: input });
+    }
+  }
+
+  // ── Показ спиннера при отправке формы ──
+  function handleSubmit(e) {
+    const input = document.getElementById('file-input');
+    if (!input.files || input.files.length === 0) {
+      e.preventDefault();
+      alert('Пожалуйста, выберите файл для загрузки.');
+      return;
+    }
+    document.getElementById('submit-btn').disabled = true;
+    document.getElementById('loading-block').style.display = 'block';
+    // Форма отправляется стандартным способом (не fetch)
+  }
+</script>
+</body>
+</html>
